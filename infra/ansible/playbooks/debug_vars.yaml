@@ -1,0 +1,16 @@
+---
+- name: Debug Variables
+  hosts: k8s_cluster
+  tasks:
+    - name: Display all variables
+      debug:
+        var: hostvars[inventory_hostname]
+
+    - name: Check if enable_modules exists
+      debug:
+        msg: "enable_modules is defined: {{ enable_modules is defined }}"
+      ignore_errors: yes
+
+    - name: Check group_vars loading
+      debug:
+        msg: "Group vars files that should be loaded: {{ lookup('fileglob', '../group_vars/*.y*ml') }}"

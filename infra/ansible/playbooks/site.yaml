@@ -1,0 +1,19 @@
+---
+- name: Common setup for all nodes
+  hosts: k8s_cluster
+  become: yes
+  roles:
+    - common
+    - containerd
+
+- name: Setup Kubernetes
+  hosts: k8s_cluster
+  become: yes
+  roles:
+    - kubernetes
+
+- name: Setup CNI plugins
+  hosts: master
+  become: yes
+  roles:
+    - cni

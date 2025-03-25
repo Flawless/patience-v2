@@ -1,0 +1,23 @@
+---
+- name: Reset Kubernetes Cluster
+  hosts: k8s_cluster
+  become: yes
+  tasks:
+    - name: Reset kubeadm
+      command: kubeadm reset -f
+      ignore_errors: yes
+
+    - name: Remove kubernetes directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/kubernetes/
+        - /var/lib/kubelet/
+        - /var/lib/etcd/
+        - "{{ ansible_env.HOME }}/.kube/"
+
+    - name: Delete CNI configurations
+      file:
+        path: /etc/cni/net.d/
+        state: absent

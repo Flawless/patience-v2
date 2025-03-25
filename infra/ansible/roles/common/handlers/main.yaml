@@ -1,0 +1,10 @@
+---
+- name: Restart systemd-modules-load
+  systemd:
+    name: systemd-modules-load
+    state: restarted
+    daemon_reload: yes
+
+- name: Reload sysctl
+  command: sysctl --system
+  changed_when: false

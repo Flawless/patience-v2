@@ -1,0 +1,79 @@
+---
+- name: Upgrade Kubernetes Cluster
+  hosts: k8s_cluster
+  become: yes
+  vars_prompt:
+    - name: new_k8s_version
+      prompt: "Enter new Kubernetes version (e.g., 1.26.0)"
+      private: no
+
+  vars:
+    architecture: "{{ 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}"
+    binaries:
+      master:
+        - kubeadm
+        - kubectl
+        - kubelet
+      worker:
+        - kubectl
+        - kubelet
+
+  tasks:
+    - name: Determine binaries to download based on node role
+      set_fact:
+        node_binaries: "{{ binaries.master if inventory_hostname in groups['master'] else binaries.worker }}"
+
+    - name: Create temporary directory for downloads
+      file:
+        path: /tmp/k8s-upgrade
+        state: directory
+        mode: '0755'
+
+    - name: Download Kubernetes binary checksums
+      get_url:
+        url: "https://dl.k8s.io/v{{ new_k8s_version }}/bin/linux/{{ architecture }}/{{ item }}.sha256"
+        dest: "/tmp/k8s-upgrade/{{ item }}.sha256"
+      with_items: "{{ node_binaries }}"
+
+    - name: Download Kubernetes binaries
+      get_url:
+        url: "https://dl.k8s.io/v{{ new_k8s_version }}/bin/linux/{{ architecture }}/{{ item }}"
+        dest: "/tmp/k8s-upgrade/{{ item }}"
+        mode: '0755'
+        checksum: "sha256:{{ lookup('file', '/tmp/k8s-upgrade/' + item + '.sha256') }}"
+      with_items: "{{ node_binaries }}"
+
+    - name: Backup existing binaries
+      copy:
+        src: "/usr/local/bin/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}.bak"
+        remote_src: yes
+      with_items: "{{ node_binaries }}"
+
+    - name: Install new binaries
+      copy:
+        src: "/tmp/k8s-upgrade/{{ item }}"
+        dest: "/usr/local/bin/{{ item }}"
+        mode: '0755'
+        remote_src: yes
+      with_items: "{{ node_binaries }}"
+
+    - block:
+      - name: Plan the upgrade (master only)
+        command: kubeadm upgrade plan
+        register: upgrade_plan
+        changed_when: false
+
+      - name: Apply the upgrade (master only)
+        command: "kubeadm upgrade apply v{{ new_k8s_version }} -y"
+      when: inventory_hostname in groups['master']
+
+    - name: Restart kubelet
+      systemd:
+        name: kubelet
+        state: restarted
+
+    - name: Cleanup temporary files
+      file:
+        path: /tmp/k8s-upgrade
+        state: absent

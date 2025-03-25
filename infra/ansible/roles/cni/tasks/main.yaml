@@ -1,0 +1,26 @@
+---
+- name: Wait for Kubernetes API to be available
+  wait_for:
+    host: localhost
+    port: 6443
+    delay: 10
+    timeout: 300
+  tags: cni
+
+- name: Install Flannel CNI
+  command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+  register: flannel_result
+  changed_when: "'created' in flannel_result.stdout"
+  when:
+    - cni_plugin == "flannel"
+    - inventory_hostname in groups['master']
+  tags: cni
+
+- name: Install Calico CNI
+  command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+  register: calico_result
+  changed_when: "'created' in calico_result.stdout"
+  when:
+    - cni_plugin == "calico"
+    - inventory_hostname in groups['master']
+  tags: cni

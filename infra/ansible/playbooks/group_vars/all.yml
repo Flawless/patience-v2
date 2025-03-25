@@ -1,0 +1,21 @@
+kubernetes_version: "1.31.0" # we will try upgrade it later
+kubernetes_packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+
+pod_network_cidr: "10.244.0.0/16"
+
+container_runtime: containerd
+
+cni_plugin: flannel
+cni_plugin_version: "latest"
+
+enable_modules:
+  - overlay
+  - br_netfilter
+
+sysctl_config:
+  net.bridge.bridge-nf-call-iptables: 1
+  net.bridge.bridge-nf-call-ip6tables: 1
+  net.ipv4.ip_forward: 1

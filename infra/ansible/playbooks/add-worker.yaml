@@ -1,0 +1,24 @@
+---
+- name: Add Worker Node to Kubernetes Cluster
+  hosts: worker
+  become: yes
+  vars:
+    join_command: "{{ lookup('file', './join-command') }}"
+  tasks:
+    - name: Include common role
+      include_role:
+        name: common
+
+    - name: Include containerd role
+      include_role:
+        name: containerd
+
+    - name: Include kubernetes role (install only)
+      include_role:
+        name: kubernetes
+        tasks_from: main.yml
+
+    - name: Join the cluster
+      command: "{{ join_command }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf

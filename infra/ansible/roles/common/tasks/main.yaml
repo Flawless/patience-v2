@@ -1,0 +1,87 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+  tags: always
+
+- name: Install required packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+  when: ansible_os_family == "Debian"
+  tags: always
+
+- name: Disable swap
+  block:
+    - name: Disable swap at runtime
+      command: swapoff -a
+      changed_when: false
+      when: ansible_swaptotal_mb > 0
+
+    - name: Disable swap in fstab
+      replace:
+        path: /etc/fstab
+        regexp: '^([^#].+\sswap\s.+)
+
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ enable_modules }}"
+  tags: system
+
+- name: Ensure kernel modules are loaded at boot
+  copy:
+    content: |
+      {% for module in enable_modules %}
+      {{ module }}
+      {% endfor %}
+    dest: /etc/modules-load.d/k8s.conf
+  notify: Restart systemd-modules-load
+  tags: system
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  with_dict: "{{ sysctl_config }}"
+  notify: Reload sysctl
+  tags: system
+        replace: '# \1'
+      when: ansible_swaptotal_mb > 0
+  tags: system
+
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ enable_modules }}"
+  tags: system
+
+- name: Ensure kernel modules are loaded at boot
+  copy:
+    content: |
+      {% for module in enable_modules %}
+      {{ module }}
+      {% endfor %}
+    dest: /etc/modules-load.d/k8s.conf
+  notify: Restart systemd-modules-load
+  tags: system
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  with_dict: "{{ sysctl_config }}"
+  notify: Reload sysctl
+  tags: system
