@@ -3,6 +3,7 @@
   set_fact:
     architecture: "{% if ansible_architecture == 'x86_64' %}amd64{% elif ansible_architecture == 'aarch64' %}arm64{% else %}{{ ansible_architecture }}{% endif %}"
   tags: kubernetes
+
 - name: Install required dependencies for kubeadm
   apt:
     name:
@@ -16,6 +17,7 @@
     state: present
     update_cache: yes
   when: ansible_os_family == "Debian"
+
 - name: Install crictl
   block:
     - name: Download crictl
@@ -35,19 +37,22 @@
       file:
         path: /usr/local/bin/crictl
         mode: '0755'
+
 - name: Create temporary directory for Kubernetes downloads
   file:
     path: /tmp/k8s-install
     state: directory
     mode: '0755'
   tags: kubernetes
-- name: Download Kubernetes binaries (without checksum)
+
+- name: Download Kubernetes binaries
   get_url:
     url: "https://dl.k8s.io/v{{ kubernetes_version }}/bin/linux/{{ architecture }}/{{ item }}"
     dest: "/tmp/k8s-install/{{ item }}"
     mode: '0755'
   with_items: "{{ kubernetes_packages }}"
   tags: kubernetes
+
 - name: Install Kubernetes binaries
   copy:
     src: "/tmp/k8s-install/{{ item }}"
@@ -56,11 +61,13 @@
     remote_src: yes
   with_items: "{{ kubernetes_packages }}"
   tags: kubernetes
+
 - name: Cleanup temporary files
   file:
     path: /tmp/k8s-install
     state: absent
   tags: kubernetes
+
 - name: Create kubelet systemd service file
   template:
     src: kubelet.service.j2
@@ -70,6 +77,7 @@
     mode: '0644'
   notify: Restart kubelet
   tags: kubernetes
+
 - name: Create kubelet default configuration
   template:
     src: kubelet-defaults.j2
@@ -79,6 +87,7 @@
     mode: '0644'
   notify: Restart kubelet
   tags: kubernetes
+
 - name: Create required directories for kubelet
   file:
     path: "{{ item }}"
@@ -91,11 +100,9 @@
     - /etc/kubernetes/manifests
     - /var/lib/kubelet
   tags: kubernetes
-- name: Include master tasks
-  include_tasks: master.yaml
-  when: inventory_hostname in groups['master']
-  tags: kubernetes
-- name: Include worker tasks
-  include_tasks: worker.yaml
-  when: inventory_hostname in groups['worker']
+
+- name: Create kubeadm config file
+  template:
+    src: kubeadm-config.yaml.j2
+    dest: /etc/kubernetes/kubeadm-config.yaml
   tags: kubernetes

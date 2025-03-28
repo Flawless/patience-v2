@@ -1,0 +1,17 @@
+---
+- name: Check if node is already joined
+  stat:
+    path: /etc/kubernetes/kubelet.conf
+  register: kubelet_conf_stat
+  tags: kubernetes
+
+- name: Get join command from master
+  set_fact:
+    join_command: "{{ hostvars['k8s-master']['join_command'].stdout }}"
+  when: hostvars['k8s-master']['join_command'] is defined
+  tags: kubernetes
+
+- name: Join the cluster
+  command: "{{ join_command }}"
+  when: not kubelet_conf_stat.stat.exists and join_command is defined
+  tags: kubernetes

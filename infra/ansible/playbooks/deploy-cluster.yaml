@@ -1,0 +1,22 @@
+---
+- name: Deploy Kubernetes master
+  hosts: master
+  become: yes
+  tasks:
+    - name: Include master initialization
+      include_role:
+        name: kubernetes
+        tasks_from: deploy_master.yaml
+
+    - name: Setup CNI network plugin
+      include_role:
+        name: cni
+
+- name: Deploy Kubernetes workers
+  hosts: worker
+  become: yes
+  tasks:
+    - name: Join workers to cluster
+      include_role:
+        name: kubernetes
+        tasks_from: deploy_worker.yaml

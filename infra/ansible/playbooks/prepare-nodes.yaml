@@ -1,0 +1,17 @@
+---
+- name: Prepare nodes for Kubernetes deployment
+  hosts: k8s_cluster
+  become: yes
+  tasks:
+    - name: Include common role
+      include_role:
+        name: common
+
+    - name: Include containerd role
+      include_role:
+        name: containerd
+
+    - name: Prepare Kubernetes components
+      include_role:
+        name: kubernetes
+        tasks_from: prepare.yaml

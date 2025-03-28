@@ -5,15 +5,8 @@
   register: kubeadm_init_stat
   tags: kubernetes
 
-- name: Create kubeadm config file
-  template:
-    src: kubeadm-config.yaml.j2
-    dest: /tmp/kubeadm-config.yaml
-  when: not kubeadm_init_stat.stat.exists
-  tags: kubernetes
-
 - name: Initialize Kubernetes cluster
-  command: kubeadm init --config=/tmp/kubeadm-config.yaml --v=5
+  command: kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --v=5
   register: kubeadm_init
   when: not kubeadm_init_stat.stat.exists
   tags: kubernetes
