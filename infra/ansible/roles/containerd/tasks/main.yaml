@@ -13,10 +13,12 @@
     mode: '0755'
   tags: containerd
 
-- name: Generate default containerd config
-  shell: containerd config default > /etc/containerd/config.toml
-  args:
-    creates: /etc/containerd/config.toml
+- name: Create containerd config from template
+  template:
+    src: containerd-config.toml.j2
+    dest: /etc/containerd/config.toml
+    mode: '0644'
+  notify: Restart containerd
   tags: containerd
 
 - name: Configure containerd to use systemd cgroup driver
@@ -33,3 +35,7 @@
     state: started
     enabled: yes
   tags: containerd
+
+- name: Include CNI preparation
+  include_tasks: cni-prep.yaml
+  tags: containerd, cni

@@ -1,4 +1,4 @@
-kubernetes_version: "1.31.0" # we will try upgrade it later
+kubernetes_version: "1.29.0" # we will try upgrade it later
 kubernetes_packages:
   - kubelet
   - kubeadm

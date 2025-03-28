@@ -85,3 +85,10 @@
   with_dict: "{{ sysctl_config }}"
   notify: Reload sysctl
   tags: system
+
+- name: Create CNI directories
+  file:
+    path: /etc/cni/net.d
+    state: directory
+    mode: '0755'
+  tags: system

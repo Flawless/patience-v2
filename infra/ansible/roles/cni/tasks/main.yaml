@@ -1,4 +1,11 @@
 ---
+- name: Ensure CNI directory exists
+  file:
+    path: /etc/cni/net.d
+    state: directory
+    mode: '0755'
+  tags: cni
+
 - name: Wait for Kubernetes API to be available
   wait_for:
     host: localhost
