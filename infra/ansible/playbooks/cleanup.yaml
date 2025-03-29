@@ -1,0 +1,30 @@
+---
+# Kubernetes Cleanup Playbook
+# Removes Kubernetes packages that aren't specified in Ansible config
+
+- name: Cleanup unused Kubernetes packages
+  hosts: k8s_cluster
+  become: yes
+  vars:
+    # Define packages you want to keep (these will NOT be removed)
+    k8s_desired_packages:
+      - kubelet
+      - kubectl
+      - kubeadm
+    # Define version of packages you want to keep
+    kubernetes_version: "1.30.10-1.1"  # Update with your desired version
+
+  tasks:
+    - name: Check version of installed desired packages
+      shell: dpkg -l | grep {{ item }} | awk '{print $2 "=" $3}'
+      register: installed_package_versions
+      changed_when: false
+      loop: "{{ k8s_desired_packages }}"
+
+    - name: Remove unwanted versions of Kubernetes packages
+      shell: apt-get remove -y --allow-change-held-packages {{ item.stdout }}
+      loop: "{{ installed_package_versions.results }}"
+      when: >
+        item.stdout is defined and
+        item.stdout | length > 0 and
+        kubernetes_version not in item.stdout

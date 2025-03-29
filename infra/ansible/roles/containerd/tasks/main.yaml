@@ -21,21 +21,9 @@
   notify: Restart containerd
   tags: containerd
 
-- name: Configure containerd to use systemd cgroup driver
-  replace:
-    path: /etc/containerd/config.toml
-    regexp: 'SystemdCgroup = false'
-    replace: 'SystemdCgroup = true'
-  notify: Restart containerd
-  tags: containerd
-
 - name: Ensure containerd is started and enabled
   systemd:
     name: containerd
     state: started
     enabled: yes
   tags: containerd
-
-- name: Include CNI preparation
-  include_tasks: cni-prep.yaml
-  tags: containerd, cni

@@ -1,81 +1,60 @@
 ---
-- name: Determine architecture for Kubernetes binaries
+- name: Extract major.minor version for repo
   set_fact:
-    architecture: "{% if ansible_architecture == 'x86_64' %}amd64{% elif ansible_architecture == 'aarch64' %}arm64{% else %}{{ ansible_architecture }}{% endif %}"
-  tags: kubernetes
+    k8s_repo_version: "{{ kubernetes_version.split('.')[:2] | join('.') }}"
 
-- name: Install required dependencies for kubeadm
-  apt:
-    name:
-      - socat
-      - conntrack
-      - ebtables
-      - apt-transport-https
-      - ca-certificates
-      - gnupg
-      - curl
-    state: present
-    update_cache: yes
-  when: ansible_os_family == "Debian"
-
-- name: Install crictl
-  block:
-    - name: Download crictl
-      get_url:
-        url: "https://github.com/kubernetes-sigs/cri-tools/releases/download/v{{ crictl_version | default('1.29.0') }}/crictl-v{{ crictl_version | default('1.29.0') }}-linux-{{ architecture }}.tar.gz"
-        dest: /tmp/crictl.tar.gz
-        mode: '0644'
-
-    - name: Extract crictl
-      unarchive:
-        src: /tmp/crictl.tar.gz
-        dest: /usr/local/bin
-        remote_src: yes
-        creates: /usr/local/bin/crictl
-
-    - name: Set permissions on crictl
-      file:
-        path: /usr/local/bin/crictl
-        mode: '0755'
-
-- name: Create temporary directory for Kubernetes downloads
+- name: Create apt keyrings directory
   file:
-    path: /tmp/k8s-install
+    path: /etc/apt/keyrings
     state: directory
     mode: '0755'
-  tags: kubernetes
 
-- name: Download Kubernetes binaries
+- name: Download Kubernetes apt signing key
   get_url:
-    url: "https://dl.k8s.io/v{{ kubernetes_version }}/bin/linux/{{ architecture }}/{{ item }}"
-    dest: "/tmp/k8s-install/{{ item }}"
-    mode: '0755'
-  with_items: "{{ kubernetes_packages }}"
-  tags: kubernetes
-
-- name: Install Kubernetes binaries
-  copy:
-    src: "/tmp/k8s-install/{{ item }}"
-    dest: "/usr/local/bin/{{ item }}"
-    mode: '0755'
-    remote_src: yes
-  with_items: "{{ kubernetes_packages }}"
-  tags: kubernetes
-
-- name: Cleanup temporary files
-  file:
-    path: /tmp/k8s-install
-    state: absent
-  tags: kubernetes
-
-- name: Create kubelet systemd service file
-  template:
-    src: kubelet.service.j2
-    dest: /etc/systemd/system/kubelet.service
-    owner: root
-    group: root
+    url: https://pkgs.k8s.io/core:/stable:/v{{ k8s_repo_version }}/deb/Release.key
+    dest: /tmp/kubernetes.key
     mode: '0644'
-  notify: Restart kubelet
+
+- name: Add Kubernetes GPG key to keyring
+  shell: |
+    cat /tmp/kubernetes.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  args:
+    creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: Add Kubernetes apt repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_repo_version }}/deb /"
+    state: present
+    filename: kubernetes
+
+- name: Find exact package version
+  shell: apt-cache madison kubelet | grep {{ kubernetes_version }} | awk '{print $3}' | head -1
+  register: k8s_full_version
+  changed_when: false
+
+- name: Debug package version
+  debug:
+    var: k8s_full_version.stdout
+
+- name: Install Kubernetes packages
+  apt:
+    name:
+      - "kubelet={{ k8s_full_version.stdout }}"
+      - "kubeadm={{ k8s_full_version.stdout }}"
+      - "kubectl={{ k8s_full_version.stdout }}"
+    state: present
+  when: k8s_full_version.stdout != ""
+
+# Prevent automatic updates that could break cluster compatibility
+- name: Hold Kubernetes packages
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  with_items:
+    - kubelet
+    - kubeadm
+    - kubectl
+  when: ansible_os_family == "Debian"
   tags: kubernetes
 
 - name: Create kubelet default configuration
@@ -86,19 +65,6 @@
     group: root
     mode: '0644'
   notify: Restart kubelet
-  tags: kubernetes
-
-- name: Create required directories for kubelet
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  with_items:
-    - /etc/kubernetes
-    - /etc/kubernetes/manifests
-    - /var/lib/kubelet
   tags: kubernetes
 
 - name: Create kubeadm config file

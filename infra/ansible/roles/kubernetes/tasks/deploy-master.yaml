@@ -1,48 +1,67 @@
 ---
-- name: Check if cluster is already initialized
-  stat:
-    path: /etc/kubernetes/admin.conf
-  register: kubeadm_init_stat
-  tags: kubernetes
-
 - name: Initialize Kubernetes cluster
-  command: kubeadm init --config=/etc/kubernetes/kubeadm-config.yaml --v=5
+  command:
+    argv:
+      - kubeadm
+      - init
+      - --config=/etc/kubernetes/kubeadm-config.yaml
   register: kubeadm_init
-  when: not kubeadm_init_stat.stat.exists
+
+- name: Set up kubeconfig for current user
+  block:
+    - name: Create .kube directory
+      file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+        mode: '0755'
+
+    - name: Copy admin.conf to user's kubeconfig
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        remote_src: yes
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+        mode: '0600'
+  when: kubeadm_init.changed
+  become: yes
+
+- name: Generate certificate key for control plane join
+  command: kubeadm init phase upload-certs --upload-certs
+  register: cert_key_output
+  when: kubeadm_init.changed
   tags: kubernetes
 
-- name: Create .kube directory for current user
-  file:
-    path: "{{ ansible_env.HOME }}/.kube"
-    state: directory
-    mode: '0755'
-  tags: kubernetes
-
-- name: Copy admin.conf to user's kube config
-  copy:
-    src: /etc/kubernetes/admin.conf
-    dest: "{{ ansible_env.HOME }}/.kube/config"
-    remote_src: yes
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: '0600'
-  when: not kubeadm_init_stat.stat.exists or kubeadm_init.changed
+- name: Extract certificate key
+  set_fact:
+    cert_key: "{{ cert_key_output.stdout | regex_search('([0-9a-z]+)', '\\1') | last }}"
+  when: kubeadm_init.changed and cert_key_output is defined
+  no_log: true
   tags: kubernetes
 
 - name: Generate join command for workers
   command: kubeadm token create --print-join-command
-  register: join_command
-  when: not kubeadm_init_stat.stat.exists or kubeadm_init.changed
+  register: join_worker
+  when: kubeadm_init.changed
   tags: kubernetes
 
-- name: Copy join command to local file
-  local_action: copy content="{{ join_command.stdout_lines[0] }}" dest="./join-command"
-  when: join_command.changed
+- name: Save worker join command locally
+  local_action: copy content="{{ join_worker.stdout_lines[0] }}" dest="./join-worker-command"
+  when: kubeadm_init.changed and join_worker.changed
   become: no
   tags: kubernetes
 
-- name: Remove control-plane taint from master (single node cluster)
+- name: Save control-plane join command locally
+  local_action: >
+    copy content="{{ join_worker.stdout_lines[0] }} --control-plane --certificate-key {{ cert_key }}"
+    dest="./join-control-plane-command"
+  when: kubeadm_init.changed and join_worker.changed
+  become: no
+  no_log: true
+  tags: kubernetes
+
+- name: Remove control-plane taint (for single node cluster)
   command: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
   ignore_errors: yes
-  when: not kubeadm_init_stat.stat.exists or kubeadm_init.changed
+  when: kubeadm_init.changed
   tags: kubernetes

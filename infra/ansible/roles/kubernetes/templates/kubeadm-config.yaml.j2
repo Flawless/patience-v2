@@ -1,18 +1,26 @@
 apiVersion: kubeadm.k8s.io/v1beta3
-kind: InitConfiguration
-nodeRegistration:
-  criSocket: unix:///var/run/containerd/containerd.sock
-  taints: []
----
-apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
-kubernetesVersion: v{{ kubernetes_version }}
-networking:
-  podSubnet: {{ pod_network_cidr }}
-  serviceSubnet: 10.96.0.0/12
+controlPlaneEndpoint: {{ control_plane_endpoint }}
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
-cgroupDriver: systemd
-staticPodPath: /etc/kubernetes/manifests
-containerRuntimeEndpoint: unix:///var/run/containerd/containerd.sock
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+# Resource reservation (customized for stability)
+systemReserved:
+  cpu: "500m"
+  memory: "1Gi"
+kubeReserved:
+  cpu: "500m"
+  memory: "1Gi"
+evictionHard:
+  memory.available: "500Mi"
+  nodefs.available: "10%"
+  nodefs.inodesFree: "5%"

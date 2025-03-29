@@ -1,9 +1,9 @@
-[master]
+[control_plane]
 k8s-master ansible_host=157.90.152.107 ansible_user=flawless
 
 [worker]
 # For future node additions
 
 [k8s_cluster:children]
-master
+control_plane
 worker

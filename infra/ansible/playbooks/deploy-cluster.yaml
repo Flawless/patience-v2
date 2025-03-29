@@ -1,19 +1,9 @@
 ---
-- name: Prepare nodes for Kubernetes
-  import_playbook: prepare-nodes.yaml
-
-- name: Setup CNI directories
-  hosts: k8s_cluster
-  become: yes
-  tasks:
-    - name: Create CNI directories
-      file:
-        path: /etc/cni/net.d
-        state: directory
-        mode: '0755'
+# - name: Prepare nodes for Kubernetes
+#   import_playbook: prepare-nodes.yaml
 
 - name: Kubernetes master deployment
-  hosts: master
+  hosts: control_plane
   become: yes
   tasks:
     - name: Deploy master node
@@ -24,12 +14,3 @@
     - name: Install CNI plugin
       include_role:
         name: cni
-
-- name: Kubernetes worker deployment
-  hosts: worker
-  become: yes
-  tasks:
-    - name: Join worker nodes to cluster
-      include_role:
-        name: kubernetes
-        tasks_from: deploy-worker.yaml

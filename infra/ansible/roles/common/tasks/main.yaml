@@ -88,7 +88,10 @@
 
 - name: Create CNI directories
   file:
-    path: /etc/cni/net.d
+    path: "{{ item }}"
     state: directory
     mode: '0755'
+  with_items:
+    - /opt/cni/bin
+    - /etc/cni/net.d
   tags: system

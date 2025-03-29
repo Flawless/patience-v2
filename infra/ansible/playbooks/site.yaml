@@ -13,7 +13,7 @@
     - kubernetes
 
 - name: Setup CNI plugins
-  hosts: master
+  hosts: control_plane
   become: yes
   roles:
     - cni

@@ -1,6 +1,6 @@
 ---
 - name: Setup Kubernetes Master
-  hosts: master
+  hosts: control_plane
   become: yes
   roles:
     - common
