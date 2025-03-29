@@ -1,6 +1,9 @@
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 controlPlaneEndpoint: {{ control_plane_endpoint }}
+networking:
+  podSubnet: {{ pod_network_cidr }}
+  serviceSubnet: 10.96.0.0/12
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
@@ -13,14 +16,13 @@ authentication:
     clientCAFile: /etc/kubernetes/pki/ca.crt
 authorization:
   mode: Webhook
-# Resource reservation (customized for stability)
 systemReserved:
-  cpu: "500m"
-  memory: "1Gi"
+  cpu: {{ system_reserved_cpu | default('100m') }}
+  memory: {{ system_reserved_memory | default('250Mi') }}
 kubeReserved:
-  cpu: "500m"
-  memory: "1Gi"
+  cpu: {{ kube_reserved_cpu | default('100m') }}
+  memory: {{ kube_reserved_memory | default('250Mi') }}
 evictionHard:
-  memory.available: "500Mi"
-  nodefs.available: "10%"
-  nodefs.inodesFree: "5%"
+  memory.available: {{ eviction_hard_memory | default('100Mi') }}
+  nodefs.available: {{ eviction_hard_disk | default('5%') }}
+  nodefs.inodesFree: {{ eviction_hard_inodes | default('5%') }}
