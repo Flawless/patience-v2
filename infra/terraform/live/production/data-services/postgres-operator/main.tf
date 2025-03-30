@@ -10,7 +10,7 @@ terraform {
 
 # Provider configuration with proper authentication
 provider "kubernetes" {
-  # Use either host/token or config_path, but not both
+  host                   = "https://kube.aidbox.dev.last-try.org:6443"
   client_certificate     = base64decode(var.k8s_client_certificate)
   client_key             = base64decode(var.k8s_client_key)
   cluster_ca_certificate = base64decode(var.k8s_cluster_ca_certificate)
@@ -29,7 +29,7 @@ module "postgres_operator" {
   spilo_image    = "ghcr.io/zalando/spilo-17:4.0-p2"
 
   # Feature flags
-  enable_postgres_team_crd     = true
+  enable_postgres_team_crd     = false
   enable_master_load_balancer  = false
   enable_replica_load_balancer = false
 

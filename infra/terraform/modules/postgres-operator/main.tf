@@ -350,6 +350,12 @@ resource "kubernetes_deployment" "postgres_operator" {
     kubernetes_config_map.postgres_operator,
     kubernetes_cluster_role_binding.postgres_operator
   ]
+
+  lifecycle {
+    replace_triggered_by = [
+      kubernetes_config_map.postgres_operator.metadata[0].generation
+    ]
+  }
 }
 
 resource "kubernetes_service" "postgres_operator" {
