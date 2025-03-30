@@ -6,3 +6,30 @@
     - name: Reset kubeadm
       command: kubeadm reset -f
       ignore_errors: yes
+
+    - name: Remove CNI network configuration
+      file:
+        path: /etc/cni/net.d
+        state: absent
+
+    - name: Flush iptables rules
+      command: iptables -F
+
+    - name: Remove custom iptables chains
+      command: iptables -X
+
+    - name: Reset iptables default tables (filter, nat, mangle)
+      command: iptables -t {{ item }} -F
+      loop:
+        - filter
+        - nat
+        - mangle
+      ignore_errors: yes
+
+    - name: Delete custom iptables chains for all tables
+      command: iptables -t {{ item }} -X
+      loop:
+        - filter
+        - nat
+        - mangle
+      ignore_errors: yes
