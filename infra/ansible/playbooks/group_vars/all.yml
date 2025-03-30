@@ -4,13 +4,14 @@ kubernetes_packages:
   - kubeadm
   - kubectl
 
-# pod_network_cidr: "10.244.0.0/16"
-pod_network_cidr: "192.168.0.0/16"
+cni_plugin: calico
+# cni_plugin: flannel
+cni_plugin_version: "latest"
+
+pod_network_cidr: "{{ '192.168.0.0/16' if cni_plugin == 'calico' else '10.244.0.0/16' }}"
+service_network_cidr: 10.96.0.0/16
 
 container_runtime: containerd
-
-cni_plugin: calico
-cni_plugin_version: "latest"
 
 enable_modules:
   - overlay
@@ -27,10 +28,12 @@ sysctl_config:
 control_plane_endpoint: kube.aidbox.dev.last-try.org
 
 # Kubelet resource settings
-system_reserved_cpu: "200m"
-system_reserved_memory: "500Mi"
-kube_reserved_cpu: "200m"
-kube_reserved_memory: "500Mi"
-eviction_hard_memory: "500Mi"
-eviction_hard_disk: "10%"
-eviction_hard_inodes: "5%"
+system_reserved_cpu: 100m
+system_reserved_memory: 100Mi
+kube_reserved_cpu: 100m
+kube_reserved_memory: 100Mi
+eviction_hard_memory: 100Mi
+eviction_hard_disk: 10%
+eviction_hard_inodes: 5%
+
+cluster_name: flawless-aidbox-dev

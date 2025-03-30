@@ -1,12 +1,25 @@
 apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  name: {{ node_name | default(inventory_hostname) }}
+  criSocket: "unix:///var/run/containerd/containerd.sock"
+  taints: []
+  kubeletExtraArgs:
+    node-ip: {{ node_internal_ip | default(ansible_host) }}
+---
+apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
+kubernetesVersion: v{{ kubernetes_version }}
+clusterName: {{ cluster_name | default('kubernetes') }}
 controlPlaneEndpoint: {{ control_plane_endpoint }}
 networking:
   podSubnet: {{ pod_network_cidr }}
-  serviceSubnet: 10.96.0.0/12
+  serviceSubnet: {{ service_network_cidr }}
+  dnsDomain: cluster.local
 ---
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
+address: {{ node_internal_ip | default(ansible_host) }}
 authentication:
   anonymous:
     enabled: false

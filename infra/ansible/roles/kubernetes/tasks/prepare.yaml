@@ -57,16 +57,6 @@
   when: ansible_os_family == "Debian"
   tags: kubernetes
 
-- name: Create kubelet default configuration
-  template:
-    src: kubelet-defaults.j2
-    dest: /etc/default/kubelet
-    owner: root
-    group: root
-    mode: '0644'
-  notify: Restart kubelet
-  tags: kubernetes
-
 - name: Create kubeadm config file
   template:
     src: kubeadm-config.yaml.j2

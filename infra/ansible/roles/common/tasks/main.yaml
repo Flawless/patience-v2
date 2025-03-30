@@ -95,3 +95,10 @@
     - /opt/cni/bin
     - /etc/cni/net.d
   tags: system
+
+- name: Ensure proper hostname resolution
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_host }} {{ ansible_hostname }}"
+    state: present
+  tags: system
