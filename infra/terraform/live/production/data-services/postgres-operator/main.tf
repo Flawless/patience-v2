@@ -8,9 +8,13 @@ terraform {
   }
 }
 
+module "k8s_config" {
+  source = "../../config"
+}
+
 # Provider configuration with proper authentication
 provider "kubernetes" {
-  host                   = "https://kube.aidbox.dev.last-try.org:6443"
+  host                   = module.k8s_config.k8s_config.host
   client_certificate     = base64decode(var.k8s_client_certificate)
   client_key             = base64decode(var.k8s_client_key)
   cluster_ca_certificate = base64decode(var.k8s_cluster_ca_certificate)
