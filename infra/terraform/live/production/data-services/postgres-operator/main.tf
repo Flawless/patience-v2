@@ -12,15 +12,12 @@ module "k8s_config" {
   source = "../../config"
 }
 
-# Provider configuration with proper authentication
 provider "kubernetes" {
   host                   = module.k8s_config.k8s_config.host
-  client_certificate     = base64decode(var.k8s_client_certificate)
-  client_key             = base64decode(var.k8s_client_key)
+  token                  = var.k8s_token
   cluster_ca_certificate = base64decode(var.k8s_cluster_ca_certificate)
 }
 
-# Directly use the module with environment-specific values
 module "postgres_operator" {
   source = "../../../../modules/postgres-operator"
 
