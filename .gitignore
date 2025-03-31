@@ -1,1 +1,2 @@
 **/.terraform/
+/infra/terraform/kubeconfig.yaml

@@ -1,11 +1,7 @@
 terraform {
-  backend "local" {
-    path = "terraform.tfstate"
+  backend "kubernetes" {
+    config_path   = "../../../../kubeconfig.yaml"
+    namespace     = "terraform"
+    secret_suffix = "data-services.postgres-operator"
   }
-  # When ready to migrate to Kubernetes backend:
-  # backend "kubernetes" {
-  #   secret_suffix    = "postgres-operator-state"
-  #   namespace        = "terraform"
-  #   in_cluster_config = true
-  # }
 }
