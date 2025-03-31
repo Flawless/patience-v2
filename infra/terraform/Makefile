@@ -20,7 +20,7 @@ auth-kubeconfig:
 	$(eval CA_CERT := $(shell kubectl config view --raw --minify --flatten -o jsonpath='{.clusters[].cluster.certificate-authority-data}'))
 	$(eval CLIENT_CERT := $(shell kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.client-certificate-data}'))
 	$(eval CLIENT_KEY := $(shell kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.client-key-data}'))
-	$(eval TOKEN := $(shell kubectl create token admin-user -n kube-system 2>/dev/null || echo ''))
+	$(eval TOKEN := $(shell kubectl create token admin-user -n kube-system --duration=2592000s 2>/dev/null || echo ''))
 	$(eval HOST := https://kube.aidbox.dev.last-try.org:6443)
 	@# Generate kubeconfig.yaml based on available credentials
 	@echo "Generating temporary kubeconfig.yaml..."

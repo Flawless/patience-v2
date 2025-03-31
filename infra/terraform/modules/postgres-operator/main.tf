@@ -319,28 +319,6 @@ resource "kubernetes_deployment" "postgres_operator" {
           name  = "postgres-operator"
           image = var.operator_image
 
-          liveness_probe {
-            http_get {
-              path = "/healthz"
-              port = 8080
-            }
-            initial_delay_seconds = 30
-            period_seconds        = 10
-            failure_threshold     = 3
-            timeout_seconds       = 5
-          }
-
-          readiness_probe {
-            http_get {
-              path = "/readyz"
-              port = 8080
-            }
-            initial_delay_seconds = 10
-            period_seconds        = 5
-            failure_threshold     = 3
-            timeout_seconds       = 3
-          }
-
           resources {
             requests = {
               cpu    = var.operator_resources.requests.cpu
